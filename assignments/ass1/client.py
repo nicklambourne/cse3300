@@ -14,7 +14,9 @@ if len(argv) not in [4, 5]:
 # Parse command line arguments
 host = argv[1].strip()
 obj = argv[2].strip()
+obj = obj if obj[0] == '/' else '/' + obj
 port = 80
+
 if len(argv) == 5:
     try: 
         port = int(argv[3])
@@ -26,16 +28,15 @@ if len(argv) == 5:
         print("Client startup failed!\n"
               "Port provided was not an integer!")
 
-print("Host: %s\nObj: %s\nPort:%s" % (host, obj, str(port)))
-
 sock = socket(AF_INET, SOCK_STREAM)
 sock.connect((host, port))
 
-sock.send(("GET / HTTP/1.0%s" % (CRLF)).encode('utf-8'))
+print("GET %s HTTP/1.0%s" % (obj, CRLF))
+sock.send(("GET %s HTTP/1.0%s" % (obj, CRLF)).encode('utf-8'))
 
-data = sock.recv(8192)
+while True:
+    data = sock.recv(1024).decode()
+    if data == "": break
+    print(data, end="")
 
 sock.close()
-
-print(data)
-
