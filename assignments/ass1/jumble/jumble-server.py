@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from signal import signal, SIGINT
+from random import randrange, shuffle
 from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
 from sys import exit
 from time import ctime, time, sleep
@@ -8,6 +9,11 @@ from _thread import start_new_thread
 
 CRLF = '\r\n\r\n'
 PORT = 50007
+
+F = open('wordlist.txt')
+words = F.readlines()
+F.close()
+
 
 def graceful_shutdown(signum, frame):
     print('\nReceived interrupt: Shutting down...')
@@ -20,19 +26,45 @@ def graceful_shutdown(signum, frame):
     exit(101)
 
 
+def jumble_word(word):
+    letters = list(word)
+    shuffle(letters)
+    jumble = ''
+    for letter in letters:
+        jumble += letter + ' '
+    return jumble
+
+
+def get_word(word_list):
+    word = word_list[randrange(len(words))]
+    while len(word) > 5 or len(word) == 0:
+        word = word_list[randrange(0, len(words))]
+    return word.strip()
+
+
 def handle_client(conn):
     while True:
         data = conn.recv(1024).decode()
         print(data)
-        if len(data) == 0:
+        if data == '':
             conn.close()
-            print("Connection closed.")
+            print('Connection closed.')
             break
-        reply = "ACCEPTED"
-        print(reply)
+        reply = 'ACCEPTED'
         conn.send(reply.encode())
-        print("response sent")
-
+        print('response sent')
+        while True:
+            word = get_word(words)
+            jumble = jumble_word(word)
+            conn.send(jumble.encode())
+            print('jumble sent')
+            guess = conn.recv(1024).decode()
+            print('Guess: ', guess)
+            if guess == word:
+                conn.send('YES'.encode())
+            else:
+                conn.send(word.encode())
+        
 
 if __name__ == '__main__':
     signal(SIGINT, graceful_shutdown)

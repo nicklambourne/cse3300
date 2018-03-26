@@ -53,10 +53,9 @@ def game_loop(comm_sock):
         correct = comm_sock.recv(1024)
         if correct.decode() == "YES":
             print("You win.")
-        elif correct.decode() == "NO":
-            correct_enc = comm_sock.recv()
-            correct_dec = correct_enc.decode()
-            print("The answer is ", correct_dec)
+        else:
+            correct = correct.decode()
+            print("The answer is ", correct)
 
 
 while True:
@@ -64,6 +63,7 @@ while True:
     message = data.decode()
     if message == "":
         print("Connection closed.")
+        exit(0)
     elif message == "ACCEPTED":
         game_loop(sock)
     sleep(1)
