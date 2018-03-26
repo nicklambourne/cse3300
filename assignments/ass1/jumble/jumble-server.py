@@ -4,7 +4,7 @@ from signal import signal, SIGINT
 from random import randrange, shuffle
 from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
 from sys import exit
-from time import ctime, time, sleep
+from time import ctime, time
 from _thread import start_new_thread
 
 CRLF = '\r\n\r\n'
@@ -23,7 +23,7 @@ def graceful_shutdown(signum, frame):
             connection.close()
         except Exception:
             pass
-    exit(101)
+    exit(1)
 
 
 def jumble_word(word):
