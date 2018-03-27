@@ -9,6 +9,14 @@ from _thread import start_new_thread
 
 CRLF = '\r\n'
 DEFAULT_PORT = 50007
+DEFAULT_FILE = 'index.html'
+NOT_FOUND_FILE = 'not_found.html'
+HTML_HEADER_FORMAT = '''HTTP/1.0 {}
+Connection: close
+Content-Type: text/html
+Content-Length: {}
+
+'''
 
 
 class BasicHTTPServer(object):
@@ -84,11 +92,38 @@ class BasicHTTPServer(object):
             start_new_thread(self.handle_client, (connection,))
 
     def is_valid_file(self, path):
-        return isfile(path)
+        """
+        Tests if a file exists in the server file system, relative to the working directory.
+        Makes an exception for '/' which is interpreted as a request for index.html, which
+        is assumed to exist.
+        :param path: a string representation of a (potential) file path.
+        :return: a boolean indicator of whether the provided file path is valid/exists.
+        """
+        if path[0] != '/':
+            return False
+        if path == '/':
+            return True
+        else:
+            try:
+                return isfile(path[1:])  # Check file, without leading slash.
+            except IsADirectoryError:
+                return False
 
     def get_file_contents(self, path):
+        """
+        Takes a file path and returns the contents of that file as a string.
+        :param path: the file path, represented as a string
+        :return: A string representation of the contents of the requested file.
+        """
+        if path == '/':  # Accept
+            path = DEFAULT_FILE
+        else:
+            if not self.is_valid_file(path):  # If file not found, choose 404 file.
+                path = NOT_FOUND_FILE
+            else:
+                path = path[1:]  # Strip leading slash.
         contents = ''
-        with open('my_file.txt') as file:
+        with open(path) as file:
             contents += file.read()
         return contents
 
@@ -101,24 +136,14 @@ class BasicHTTPServer(object):
         """
         while True:  # read, write a client socket
             data = connection.recv(1024)
-            if not data: break
-            length = len("""<html>
-<body>
-<h1>Hello, World!</h1>
-</body>
-</html>""".encode())
-            print("Length: " + str(length))
-            reply = '''HTTP/1.0 200 OK
-Connection: close
-Content-Type: text/html
-Content-Length: {}
-
-<html>
-<body>
-<h1>Hello, World!</h1>
-</body>
-</html>
-'''.format(length)
+            if not data:
+                break
+            request = data.decode().split('\n')[0]
+            file_path = request.split(' ')[1]
+            body = self.get_file_contents(file_path)
+            body_length = len(body.encode())
+            reply = HTML_HEADER_FORMAT.format("200 OK" if self.is_valid_file(file_path)\
+                                                else "404 Not Found", body_length) + body
             print(reply)
             connection.sendall(reply.encode())
         connection.close()
