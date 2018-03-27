@@ -67,7 +67,7 @@ class JumbleClient(object):
         except TypeError:
             print('Client startup failed!\n'
                   'Port provided was not an integer!')
-        return (server_address, port)
+        return server_address, port
 
     def game_loop(self):
         """
@@ -76,16 +76,21 @@ class JumbleClient(object):
         :return: None
         """
         while True:
-            word_enc = self.sock.recv(1024)
-            word_dec = word_enc.decode().strip()
-            guess = input("Jumble: " + word_dec + "\nGuess: ")
-            self.sock.send(guess.encode())
-            correct = self.sock.recv(1024)
-            if correct.decode() == "YES":
-                print("You win.")
-            else:
-                correct = correct.decode()
-                print("The answer is ", correct)
+            try:
+                word_enc = self.sock.recv(1024)
+                word_dec = word_enc.decode().strip()
+                guess = input("Jumble: " + word_dec + "\nGuess: ")
+                self.sock.send(guess.encode())
+                correct = self.sock.recv(1024)
+                if correct.decode() == "YES":
+                    print("You win.")
+                else:
+                    correct = correct.decode()
+                    print("The answer is ", correct)
+            except BrokenPipeError:
+                print("Connection to server lost, shutting down...")
+                exit(4)
+
 
     def graceful_shutdown(self, signum, frame):
         """
@@ -100,9 +105,9 @@ class JumbleClient(object):
 
 
 if __name__ == '__main__':
-    client = JumbleClient()
-    signal(SIGINT, client.graceful_shutdown)
-    client.play_game()
+    client = JumbleClient()  # Instantiate client.
+    signal(SIGINT, client.graceful_shutdown)  # Set up Keyboard Interrupt handling.
+    client.play_game()  # Start game loop.
 
 
 
