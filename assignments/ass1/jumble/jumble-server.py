@@ -1,4 +1,9 @@
-#!/usr/bin/env python3
+"""
+Author: Nicholas Lambourne
+CSE 3300  - Computer Networks and Data Communication
+Professor: Dr Bing Wang
+Assignment 1: Jumble Server
+"""
 
 from signal import signal, SIGINT
 from random import randrange, shuffle
@@ -17,10 +22,10 @@ class JumbleServer(object):
     of the JumbleClient.
     """
     def __init__(self):
-        self.words = self.get_word_list()
-        self.port = self.parse_arguments()
-        self.host = ''  # Equivalent to localhost / 0.0.0.0 / 127.0.0.1
-        self.connections = []
+        self.words = self.get_word_list()  # Populate list of words
+        self.port = self.parse_arguments()  # Port to host on (from command line or default)
+        self.host = ''  # Equivalent to localhost / 0.0.0.0
+        self.connections = []  # For storing connection objects (in case of interrupt)
 
     def start_server(self):
         """
@@ -28,11 +33,12 @@ class JumbleServer(object):
         N.B. Will run until explicitly interrupted.
         :return: None
         """
-        sock = socket(AF_INET, SOCK_STREAM)
-        sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-        sock.bind((self.host, DEFAULT_PORT))
+        sock = socket(AF_INET, SOCK_STREAM)  # TCP, IPV4
+        sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)  # Release socket immediately on program exit
+        sock.bind((self.host, self.port))
         sock.listen(10)  # 10 pending connections allowed
-        print('Server started, (listening on {}:{}) waiting for connection...'.format(gethostbyname(''), DEFAULT_PORT))
+        print('Server started, (listening on {}:{}) waiting for connection...'.\
+              format(gethostbyname(''), self.port))
         while True:
             connection, address = sock.accept()
             self.connections.append(connection)
@@ -43,20 +49,20 @@ class JumbleServer(object):
         """
         Parses the command line arguments passed to the program on initiation, reporting
         incorrect usage.
-        N.B. Will exit if an incorrect number of arguments or an invalid port number is provided.
+        N.B. Will exit if an incorrect number of arguments or an invalid port is provided.
         :return: a single integer representing the port number to be used.
         """
         # Check the number of command line arguments
-        if len(argv) not in [1, 2]:
+        if len(argv) not in [1, 2]:  # Can accept 0 or 1 arguments.
             print('Client startup failed!\n'
                   'Incorrect number of arguments\n'
                   'Usage: python jumble-server.py [port]')
             exit(1)
         port = DEFAULT_PORT  # Default to port 80 (HTTP) if no port is provided.
-        if len(argv) == 2:
+        if len(argv) == 2:  # Port has been given, try to parse.
             try:
                 port = int(argv[2])
-                if port < 5000:
+                if port < 5000 or port > 65535:  # Check port is in acceptable range.
                     print('Client startup failed!\n'
                           'Port must be >5000 to avoid clashes with critical ports')
                     exit(2)
@@ -70,21 +76,21 @@ class JumbleServer(object):
         Provides the list of words from the given WORD_LIST_FILE as an array.
         :return: [string, ...] list of strings of words
         """
-        F = open(WORD_LIST_FILE)
-        words = F.readlines()
-        F.close()
+        file = open(WORD_LIST_FILE)
+        words = file.readlines()  # Read entire contents to memory (may be slow).
+        file.close()
         return words
 
     def jumble_word(self, word):
         """
         Takes a word and provides a jumbled version, space-separated.
         :param word: a string representing a word.
-        :return: a string representing a jumbled word, where each letter is separated by a space.
+        :return: a string representing a jumbled word, each letter is separated by a space.
         """
-        letters = list(word)
-        shuffle(letters)
+        letters = list(word)  # Split into list
+        shuffle(letters)  # Randomise
         jumble = ''
-        for letter in letters:
+        for letter in letters:  # Turn back into string
             jumble += letter + ' '
         return jumble
 
@@ -107,10 +113,10 @@ class JumbleServer(object):
         :return: None
         """
         print('\nReceived interrupt: Shutting down...')
-        for connection in self.connections:
+        for connection in self.connections:  # Attempt to close down connections
             try:
                 connection.close()
-            except Exception:
+            except Exception:  # Handle connection is already closed (skip).
                 pass
         exit(1)
 
@@ -122,14 +128,14 @@ class JumbleServer(object):
         :param connection: the socket connection to the client.
         :return: None
         """
-        while True:
+        while True:  # Loop through received data until there is none left to parse.
             data = connection.recv(1024).decode()
             if data == '':
                 connection.close()
                 print('Connection closed.')
                 break
             reply = 'ACCEPTED'
-            connection.send(reply.encode())
+            connection.send(reply.encode())  # Send confirmation of receipt.
             self.game_loop(connection)
 
     def game_loop(self, connection):
@@ -141,16 +147,16 @@ class JumbleServer(object):
         """
         while True:
             try:
-                word = self.get_word(self.words)
-                jumble = self.jumble_word(word)
-                connection.send(jumble.encode())
-                guess = connection.recv(1024).decode()
+                word = self.get_word(self.words)  # Get word
+                jumble = self.jumble_word(word)  # Jumble word
+                connection.send(jumble.encode())  # Send word
+                guess = connection.recv(1024).decode()  # Receive guess
                 if guess == word:
-                    connection.send('YES'.encode())
+                    connection.send('YES'.encode())  # Send confirmation
                 else:
-                    connection.send(word.encode())
+                    connection.send(word.encode())  # Send rejection (correct spelling)
             except BrokenPipeError:
-                print("Client connection lost, shutting down thread...")
+                print("Client connection lost, shutting down thread...")  # Handle client loss
                 break
 
 

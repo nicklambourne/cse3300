@@ -1,6 +1,12 @@
-#!/usr/bin/env python3
+"""
+Author: Nicholas Lambourne
+CSE 3300  - Computer Networks and Data Communication
+Professor: Dr Bing Wang
+Assignment 1: HTTP Server
+"""
 
-from os.path import isfile
+from os.path import isdir, isfile
+from os import chdir
 from signal import signal, SIGINT
 from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, SOL_SOCKET, SO_REUSEADDR
 from sys import argv, exit
@@ -24,10 +30,13 @@ class BasicHTTPServer(object):
     Custom class defining a basic HTTP server with the ability to serve static files to
     multiple clients concurrently (threaded).
     """
+
     def __init__(self):
-        self.port = self.parse_arguments()
-        self.host = '127.0.0.1'  # Equivalent to localhost
-        self.connections = []
+        self.port, self.root_directory = self.parse_arguments()
+        chdir(self.root_directory)  # Change into given root directory.
+        print("Changed cwd to:" + self.root_directory)
+        self.host = '127.0.0.1'  # Equivalent to localhost.
+        self.connections = []  # For keeping tract of connected clients.
 
     def parse_arguments(self):
         """
@@ -35,17 +44,23 @@ class BasicHTTPServer(object):
         N.B. Will exit the process if the provided port number is not an integer.
         :return:
         """
-        if len(argv) == 1:  # No port provided, so use the default port (above).
-            return DEFAULT_PORT
+        port = DEFAULT_PORT
+        if len(argv) != 3:
+            self.print_usage_message('Incorrect number of arguments!')
+            exit(5)
         try:  # Port provided, attempt to read.
             port = int(argv[1])
-            if not 5000 < port < 65536:  # Check inside allowable port range
+            if not 5000 < port < 65536:  # Check inside allowable port range.
                 self.print_usage_message('Provided port must be greater than 5000 to avoid conflicts!')
                 exit(2)
-            return port
         except ValueError:  # If provided port is not parsable.
             self.print_usage_message('Provided port is not an integer!')
             exit(3)
+        root_directory = argv[2]
+        if not isdir(root_directory):  # If directory is invalid, exit.
+            self.print_usage_message('Provided root directory is invalid!')
+            exit(6)
+        return port, root_directory
 
     def print_usage_message(self, message_header):
         """
@@ -55,7 +70,7 @@ class BasicHTTPServer(object):
         :return: None
         """
         base_message = 'Server startup failed!\n' \
-                       'Usage: python3 http-server.py <port>\n'
+                       'Usage: python3 http-server.py <port> <root_directory>\n'
         print(message_header + '\n' + base_message)
 
     def graceful_shutdown(self, signum, frame):
@@ -79,8 +94,8 @@ class BasicHTTPServer(object):
         interrupted by user.
         :return: None
         """
-        sock = socket(AF_INET, SOCK_STREAM)
-        sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        sock = socket(AF_INET, SOCK_STREAM)  # TCP, IPV4
+        sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)  # Free port immediately on exit
         sock.bind((self.host, self.port))
         sock.listen(10)  # 10 pending connections allowed
         print('Server started, (listening on {}:{}) waiting for connection...'
@@ -99,14 +114,14 @@ class BasicHTTPServer(object):
         :param path: a string representation of a (potential) file path.
         :return: a boolean indicator of whether the provided file path is valid/exists.
         """
-        if path[0] != '/':
+        if path[0] != '/':  # Must lead with slash.
             return False
-        if path == '/':
+        if path == '/':  # Slash is an accepted corner case (translated to index.html).
             return True
         else:
             try:
                 return isfile(path[1:])  # Check file, without leading slash.
-            except IsADirectoryError:
+            except IsADirectoryError:  # Do not accept directories
                 return False
 
     def get_file_contents(self, path):
@@ -138,23 +153,17 @@ class BasicHTTPServer(object):
             data = connection.recv(1024)
             if not data:
                 break
-            request = data.decode().split('\n')[0]
-            file_path = request.split(' ')[1]
+            request = data.decode().split('\n')[0]  # Get first line of request.
+            file_path = request.split(' ')[1]  # Get requested file path.
             body = self.get_file_contents(file_path)
-            body_length = len(body.encode())
-            reply = HTML_HEADER_FORMAT.format("200 OK" if self.is_valid_file(file_path)\
-                                                else "404 Not Found", body_length) + body
-            print(reply)
-            connection.sendall(reply.encode())
+            body_length = len(body.encode())  # Get length for content length header.
+            reply = HTML_HEADER_FORMAT.format("200 OK" if self.is_valid_file(file_path)
+                                              else "404 Not Found", body_length) + body
+            connection.sendall(reply.encode())  # Send until no more data.
         connection.close()
 
 
 if __name__ == '__main__':
-    server = BasicHTTPServer()
-    signal(SIGINT, server.graceful_shutdown)
-    server.run_server()
-
-
-
-
-
+    server = BasicHTTPServer()  # Instantiate server.
+    signal(SIGINT, server.graceful_shutdown)  # Set up KeyboardInterrupt handling.
+    server.run_server()  # Run server until interrupt.

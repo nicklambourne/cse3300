@@ -1,4 +1,9 @@
-#!/usr/bin/env/ python3
+"""
+Author: Nicholas Lambourne
+CSE 3300  - Computer Networks and Data Communication
+Professor: Dr Bing Wang
+Assignment 1: Jumble Client
+"""
 
 from time import sleep
 from signal import signal, SIGINT
