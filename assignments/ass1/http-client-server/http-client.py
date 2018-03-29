@@ -58,7 +58,7 @@ class BasicHTTPClient(object):
             if len(argv) == 4:  # No headers
                 return host, obj, port, headers
             try:
-                for pair in argv[4:]:
+                for pair in argv[4:]:  # Get rest of CLAs
                     header, value = pair.split(':')
                     headers.append((header, value))
             except ValueError:

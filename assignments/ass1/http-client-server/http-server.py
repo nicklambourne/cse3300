@@ -104,7 +104,7 @@ class BasicHTTPServer(object):
             connection, address = sock.accept()
             self.connections.append(connection)
             print('Server connected to {} at {}'.format(address, ctime(time())))
-            start_new_thread(self.handle_client, (connection,))
+            start_new_thread(self.handle_client, (connection,))  # Start thread for each client.
 
     def is_valid_file(self, path):
         """

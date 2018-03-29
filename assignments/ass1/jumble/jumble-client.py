@@ -113,20 +113,3 @@ if __name__ == '__main__':
     client = JumbleClient()  # Instantiate client.
     signal(SIGINT, client.graceful_shutdown)  # Set up Keyboard Interrupt handling.
     client.play_game()  # Start game loop.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
