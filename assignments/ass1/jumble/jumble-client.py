@@ -58,7 +58,7 @@ class JumbleClient(object):
         if len(argv) not in [2, 3]:
             print('Client startup failed!\n'
                   'Incorrect number of arguments\n'
-                  'Usage: ./http-client <server-address> [port]')
+                  'Usage: python3 jumble-client.py <server-address> [port]')
             exit(1)
 
         server_address = argv[1].strip()
@@ -113,3 +113,20 @@ if __name__ == '__main__':
     client = JumbleClient()  # Instantiate client.
     signal(SIGINT, client.graceful_shutdown)  # Set up Keyboard Interrupt handling.
     client.play_game()  # Start game loop.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
