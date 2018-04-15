@@ -1,10 +1,18 @@
+"""
+CSE 3300 - Computer Networks & Data Communication
+Prof. Bing Wang
+Assignment 2: ICMP Ping Client
+Nicholas Lambourne - ndl17004 - 2749404
+N.B: Only code in the receiveOnePing (Between #Fill In tags), shutdown and main functions is mine.
+The remainder was provided as skeleton code by the course instructors.
+"""
+
 from socket import *
 import os
 import sys
 import struct
 import time
 import select
-import binascii
 from sys import argv
 from signal import signal, SIGINT
 
@@ -70,7 +78,7 @@ def receiveOnePing(mySocket, ID, timeout, destAddr):
         # Fill in start
 
         # Calculate where to in the recPacket the ICMP segment will be.
-        header_start_bit = int(160/8)  # ICMP packet starts at 160th bit, as per HW sheet - convert to bytes.
+        header_start_bit = int(160 / 8)  # ICMP packet starts at 160th bit, as per HW sheet - convert to bytes.
         header_end_bit = header_start_bit + 8  # ICMP packet is 8 bytes long, as per HW sheet.
 
         # Unpack recPacket, getting header values and data (the sent timestamp).
@@ -81,7 +89,7 @@ def receiveOnePing(mySocket, ID, timeout, destAddr):
         sent_timestamp = struct.unpack("d", icmp_data_section)[0]  # Unpack returns a tuple.
 
         # Check that the packet is an ICMP reply and is from the host we sent the request to.
-        if type == 0 and id == ID and addr[0] == destAddr:
+        if type == 0 and code == 0 and id == ID and addr[0] == destAddr:
             return timeReceived - sent_timestamp  # Return RTT = time_recv - time_sent.
 
         # Fill in end
@@ -148,9 +156,11 @@ def ping(host, timeout=1):
         time.sleep(1)  # one second
     return delay
 
-def graceful_shutdown(signum, frame):
+
+def shutdown(signum, frame):
     print("Received KeyboardInterrupt, shutting down...")
     exit(2)
+
 
 if __name__ == "__main__":
     # Check that a host (and only one) has been provided.
@@ -159,5 +169,5 @@ if __name__ == "__main__":
               "Usage: python3 ping <host>\n"
               "N.B: May require admin/sudo privileges.")
         exit(1)
-    signal(SIGINT, graceful_shutdown)  # Set up KeyboardInterrupt handling.
+    signal(SIGINT, shutdown)  # Set up KeyboardInterrupt handling.
     ping(argv[1])
